@@ -403,21 +403,9 @@ public final class ScopingStrategy {
 		if (visitedNamed == null) {
 			return;
 		}
-		with.accept(segment -> {
-			if (segment instanceof SymbolicName symbolicName) {
-				visitedNamed.stream()
-					.filter(element -> {
-						if (element instanceof Named named) {
-							return named.getRequiredSymbolicName().equals(segment);
-						} else if (element instanceof Aliased aliased) {
-							return aliased.getAlias().equals((symbolicName).getValue());
-						} else {
-							return element.equals(segment);
-						}
-					})
-					.forEach(retain::add);
-			} else if (segment instanceof Asterisk) {
-				retain.addAll(visitedNamed);
+		with.getItems().forEach(i -> {
+			if (i instanceof AliasedExpression aliasedExpression) {
+				retain.add(aliasedExpression.asName());
 			}
 		});
 

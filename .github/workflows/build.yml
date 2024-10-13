@@ -19,12 +19,6 @@ jobs:
         with:
           distribution: zulu
           java-version: 21
-      - name: Enable Sonar for local PRs not from Dependabot
-        if:  ${{ github.event.sender.login != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        run: echo "USE_SONAR=sonar" >> $GITHUB_ENV
-      - name: Disable Sonar for foreign PRs or from Dependabot
-        if:  ${{ github.event.sender.login == 'dependabot[bot]' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) }}
-        run: echo "USE_SONAR=-sonar" >> $GITHUB_ENV
       - name: Determine revision
         id: revision_step
         run: |
@@ -32,12 +26,6 @@ jobs:
           echo "REVISION=$REVISION" >> $GITHUB_ENV
           echo "OLD_VERSION=$(./bin/extract-version.sh latest)" >> $GITHUB_ENV
           echo "::set-output name=revision::$REVISION"
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
       - name: Cache Maven packages
         uses: actions/cache@v3
         with:
@@ -47,9 +35,8 @@ jobs:
       - name: Run Maven build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: >
-          ./mvnw --no-transfer-progress clean deploy -DSCHEMA_NAMES_TEST_ALL_VERSIONS=true -P$USE_SONAR -Drevision=$REVISION -Dsha1=-$GITHUB_SHA -Dchangelist= -Dcypher-dsl.version.old=$OLD_VERSION
+          ./mvnw --no-transfer-progress clean deploy -DSCHEMA_NAMES_TEST_ALL_VERSIONS=true -P-sonar -Drevision=$REVISION -Dsha1=-$GITHUB_SHA -Dchangelist= -Dcypher-dsl.version.old=$OLD_VERSION
           -DaltDeploymentRepository=releases::default::file://$GITHUB_WORKSPACE/target/repository -DskipTests
           -pl !org.neo4j:neo4j-cypher-dsl-native-tests
           -pl !org.neo4j:neo4j-cypher-dsl-examples-core
